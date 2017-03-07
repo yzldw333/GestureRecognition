@@ -63,9 +63,9 @@ if __name__ == '__main__':
     b_fc1 = bias_variable([512])
     b_fc2 = bias_variable([256])
     b_fc3 = bias_variable([19])
-
-    X = tf.placeholder('float',shape=[20,32,57,125,2])
-    y_ = tf.placeholder('int64',shape=[20])
+    batchsize = 1
+    X = tf.placeholder('float',shape=[batchsize,32,57,125,2])
+    y_ = tf.placeholder('int64',shape=[batchsize])
 
     h_conv1 = conv3d_1(X,W_conv3d_1,b_conv3d_1)
     h_pool1 = max_pool_3d_1(h_conv1)
@@ -95,18 +95,33 @@ if __name__ == '__main__':
     sess = tf.InteractiveSession()
     seqs,label = Read_TFRecord('train.tfrecords')
     test_seqs,test_label = Read_TFRecord('test.tfrecords')
-    #coord = tf.train.Coordinator()
-    val_batch, label_batch = tf.train.shuffle_batch([seqs,label],20,2000,1000,enqueue_many=False,num_threads=1)
-    threads = tf.train.start_queue_runners(sess=sess)
+    coord = tf.train.Coordinator()
+    seqs, label = tf.train.shuffle_batch([seqs,label],batchsize,2000,1000,num_threads=2)
+    threads = tf.train.start_queue_runners(sess=sess,coord=coord)
     sess.run(init)
-    for i in range(20000):
-        val_batch,label_batch = sess.run([val_batch,label_batch])
-        sess.run(train_step,feed_dict={X:val_batch.reshape([20,32,57,125,2]),y_:label_batch.reshape([20])})
-        print('%d step done'%i)
-        #if i!=0 and i%3 == 0 :
-        #    test_val,test_label = sess.run([test_seqs,test_label])
-        #    test_label = np.array([test_label],dtype=np.int64)
-        #    print(sess.run(accuracy,feed_dict={X:test_val.reshape([1,32,57,125,2]),y_:test_label.reshape([1])}))
+    try:
+        while not coord.should_stop():
+            # Run training steps or whatever
+            for i in range(20000):
+                val_batch, label_batch = sess.run([seqs, label])
+                print(val_batch.shape, label_batch.shape)
+                sess.run(train_step, feed_dict={X: val_batch.reshape([batchsize, 32, 57, 125, 2]),
+                                                y_: label_batch.reshape([batchsize])})
+                print('%d step done' % i)
+
+                # if i!=0 and i%3 == 0 :
+                #    test_val,test_label = sess.run([test_seqs,test_label])
+                #    test_label = np.array([test_label],dtype=np.int64)
+                #    print(sess.run(accuracy,feed_dict={X:test_val.reshape([1,32,57,125,2]),y_:test_label.reshape([1])}))
+
+    except tf.errors.OutOfRangeError:
+        print('Done training -- epoch limit reached')
+    finally:
+        # When done, ask the threads to stop.
+        coord.request_stop()
+
+    # Wait for threads to finish.
     sess.close()
+    coord.join(threads=threads)
 
 

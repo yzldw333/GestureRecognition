@@ -74,19 +74,24 @@ def Read_TFRecord(tfRecordPath):
 
 def Test_Read_TFRecord():
     seqs,label = Read_TFRecord('train.tfrecords')
-    #coord = tf.train.Coordinator()
+    coord = tf.train.Coordinator()
     init = tf.global_variables_initializer()
-    sess = tf.Session()
-    threads = tf.train.start_queue_runners(sess=sess)
-    sess.run(init)
-    val,label = sess.run([seqs,label])
-    print(val.shape,label)
-
-    sess.close()
-
+    with tf.Session() as sess:
+        threads = tf.train.start_queue_runners(sess=sess,coord=coord)
+        sess.run(init)
+        val,label = sess.run([seqs,label])
+        print(val.shape,label)
+        #coord.join(threads)
+    coord.request_stop()
 if __name__ == '__main__':
-    pairList = Get_VIVA_HandGesture_Database('train')
-    print(pairList)
-    print(len(pairList))
-    Write_TFRecord(pairList,'train.tfrecords')
+    #pairList = Get_VIVA_HandGesture_Database('train')
+    #print(pairList)
+    #print(len(pairList))
+    #Write_TFRecord(pairList,'train.tfrecords')
     Test_Read_TFRecord()
+    #print("train.tfrecords generation DONE!\n\n")
+    #pairList = Get_VIVA_HandGesture_Database('test')
+    #print(pairList)
+    #print(len(pairList))
+    #Write_TFRecord(pairList, 'test.tfrecords')
+    #Test_Read_TFRecord()

@@ -69,7 +69,7 @@ def Read_TFRecord(tfRecordPath):
     seqs = tf.decode_raw(features['raw_seqs'],tf.uint8)
     seqs = tf.reshape(seqs,[32,57,125,2])
     seqs = tf.cast(seqs,tf.float32)/255.0-0.5
-    label = tf.cast(features['label'],tf.int32)
+    label = tf.cast(features['label'],tf.int64)
     return seqs,label
 
 def Test_Read_TFRecord():

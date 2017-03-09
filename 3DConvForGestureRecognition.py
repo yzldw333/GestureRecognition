@@ -63,7 +63,7 @@ if __name__ == '__main__':
     b_fc1 = bias_variable([512])
     b_fc2 = bias_variable([256])
     b_fc3 = bias_variable([19])
-    batchsize = 1
+    batchsize = 2
     X = tf.placeholder('float',shape=[batchsize,32,57,125,2])
     y_ = tf.placeholder('int64',shape=[batchsize])
 

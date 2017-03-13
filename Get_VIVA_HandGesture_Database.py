@@ -58,7 +58,7 @@ def Write_TFRecord(pairList,tfRecordPath):
         index+=1
     writer.close()
 
-def Read_TFRecord(tfRecordPath):
+def Read_TFRecord(tfRecordPath,epoch=1):
     filename_queue = tf.train.string_input_producer([tfRecordPath])
     reader = tf.TFRecordReader()
     _,serialized_example = reader.read(filename_queue)

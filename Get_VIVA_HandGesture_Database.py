@@ -58,14 +58,15 @@ def Write_TFRecord(pairList,tfRecordPath):
         index+=1
     writer.close()
 
-def Read_TFRecord(tfRecordPath,epoch=1):
-    filename_queue = tf.train.string_input_producer([tfRecordPath])
+def Read_TFRecord(tfRecordPath,epoch=None):
+    filename_queue = tf.train.string_input_producer([tfRecordPath],num_epochs=epoch)
     reader = tf.TFRecordReader()
     _,serialized_example = reader.read(filename_queue)
     features = tf.parse_single_example(serialized_example,
                                        features={
-        'label':tf.FixedLenFeature([],tf.int64),
-        'raw_seqs':tf.FixedLenFeature([],tf.string)})
+                                           'raw_seqs': tf.FixedLenFeature([], tf.string),
+                                            'label':tf.FixedLenFeature([],tf.int64)
+                                        })
     seqs = tf.decode_raw(features['raw_seqs'],tf.uint8)
     seqs = tf.reshape(seqs,[32,57,125,2])
     seqs = tf.cast(seqs,tf.float32)/255.0-0.5
@@ -73,7 +74,7 @@ def Read_TFRecord(tfRecordPath,epoch=1):
     return seqs,label
 
 def Test_Read_TFRecord():
-    seqs,label = Read_TFRecord('train.tfrecords')
+    seqs,label = Read_TFRecord('test.tfrecords')
     coord = tf.train.Coordinator()
     init = tf.global_variables_initializer()
     with tf.Session() as sess:
@@ -81,17 +82,17 @@ def Test_Read_TFRecord():
         sess.run(init)
         val,label = sess.run([seqs,label])
         print(val.shape,label)
-        #coord.join(threads)
     coord.request_stop()
+    coord.join(threads)
 if __name__ == '__main__':
     #pairList = Get_VIVA_HandGesture_Database('train')
     #print(pairList)
     #print(len(pairList))
     #Write_TFRecord(pairList,'train.tfrecords')
-    Test_Read_TFRecord()
+
     #print("train.tfrecords generation DONE!\n\n")
-    #pairList = Get_VIVA_HandGesture_Database('test')
-    #print(pairList)
-    #print(len(pairList))
-    #Write_TFRecord(pairList, 'test.tfrecords')
-    #Test_Read_TFRecord()
+    pairList = Get_VIVA_HandGesture_Database('test')
+    print(pairList)
+    print(len(pairList))
+    Write_TFRecord(pairList, 'test.tfrecords')
+    Test_Read_TFRecord()

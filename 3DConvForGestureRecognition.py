@@ -105,53 +105,52 @@ if __name__ == '__main__':
         with tf.name_scope('accuracy') as scope:
             accuracy = tf.reduce_mean(tf.cast(correct_prediction,'float'))
 
-    tf.scalar_summary("accuracy",accuracy)
-    tf.scalar_summary("loss", cross_entropy)
-    merge_all_summary_op = tf.merge_all_summaries()
     with tf.Session(graph=graph) as sess:
-        seqs,label = Read_TFRecord('train.tfrecords',None)
-        test_seqs,test_label = Read_TFRecord('test.tfrecords',None)
+
+        seqs1,label1 = Read_TFRecord('train.tfrecords',None)
+        #seqs2,label2 = Read_TFRecord('test.tfrecords',None)
         coord = tf.train.Coordinator()
-        seqs, label = tf.train.shuffle_batch([seqs,label],batchsize,3000,1500,num_threads=4)
-        #test_seqs,test_label = tf.train.shuffle_batch([test_seqs,test_label],10,3000,1500,num_threads=5)
+        seqs_batch1, label_batch1 = tf.train.shuffle_batch([seqs1,label1],batchsize,1060,1000,num_threads=4)
+        #seqs_batch2,label_batch2 = tf.train.shuffle_batch([seqs2,label2],batchsize,3000,1500,num_threads=5)
+        tf.local_variables_initializer().run()
         threads = tf.train.start_queue_runners(sess=sess,coord=coord)
         summary_writer = tf.summary.FileWriter('./graph/logs', sess.graph)
         tf.global_variables_initializer().run()
+        saver = tf.train.Saver()
         try:
             while not coord.should_stop():
                 # Run training steps or whatever
                 for i in range(20000):
-                    val_batch, label_batch = sess.run([seqs, label])
-                    #print(val_batch.shape, label_batch.shape)
+                    train_seqs, train_label = sess.run([seqs_batch1, label_batch1])
 
-                    sess.run(train_step, feed_dict={X: val_batch.reshape([batchsize, 32, 57, 125, 2]),
-                                                    y_: label_batch.reshape([batchsize])})
+                    sess.run(train_step, feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
+                                                    y_: train_label.reshape([batchsize])})
 
                     if i%5==0:
-                        print("train error:")
-                        print(sess.run(accuracy, feed_dict={X: val_batch.reshape([batchsize, 32, 57, 125, 2]),
-                                                    y_: label_batch.reshape([batchsize])}))
-                        summary_str = sess.run(merge_all_summary_op,
-                                               feed_dict={X: val_batch.reshape([batchsize, 32, 57, 125, 2]),
-                                                          y_: label_batch.reshape([batchsize])})
-                        summary_writer.add_summary(summary_str, i + 1)
-                        summary_writer.flush()
+                        print("train cross_entropy:")
+                        print(sess.run(cross_entropy, feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
+                                                    y_: train_label.reshape([batchsize])}))
+                        print("train accuracy")
+                        print(sess.run(accuracy,feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
+                                                    y_: train_label.reshape([batchsize])}))
+                    if i%1000==0 and i!=0:
+                        saver.save(sess=sess,save_path='./train_model/model',global_step=i)
                     print('%d step done' % i)
 
 
                     #if i!=0 and i%20 == 0 :
-                    #   test_val,test_label = sess.run([test_seqs,test_label])
-                    #   print("test error:")
-                    #   print(sess.run(accuracy,feed_dict={X:test_val.reshape([10,32,57,125,2]),y_:test_label.reshape([10])}))
-        except tf.errors.OutOfRangeError:
-            print('Done training -- epoch limit reached')
+                       #test_seqs,test_label = sess.run([seqs_batch2,label_batch2])
+                       #print("test accuracy:")
+                       #print(sess.run(accuracy,feed_dict={X:test_val.reshape([batchsize,32,57,125,2]),y_:test_y.reshape([batchsize])}))
+        #except tf.errors.OutOfRangeError:
+         #   print('Done training -- epoch limit reached')
         finally:
             # When done, ask the threads to stop.
             coord.request_stop()
-
+            coord.join(threads)
         # Wait for threads to finish.
 
-
+        summary_writer.flush()
         summary_writer.close()
     #coord.join(threads=threads)
 

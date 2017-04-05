@@ -112,37 +112,11 @@ if __name__ == '__main__':
         coord = tf.train.Coordinator()
         seqs_batch1, label_batch1 = tf.train.shuffle_batch([seqs1,label1],batchsize,1060,1000,num_threads=4)
         #seqs_batch2,label_batch2 = tf.train.shuffle_batch([seqs2,label2],batchsize,3000,1500,num_threads=5)
+        merged_summary_op = tf.merge_all_summaries()
         tf.local_variables_initializer().run()
         threads = tf.train.start_queue_runners(sess=sess,coord=coord)
         summary_writer = tf.summary.FileWriter('./graph/logs', sess.graph)
         tf.global_variables_initializer().run()
-<<<<<<< HEAD
-        # try:
-        #     while not coord.should_stop():
-        #         # Run training steps or whatever
-        #         for i in range(20000):
-        #             val_batch, label_batch = sess.run([seqs, label])
-        #             print(val_batch.shape, label_batch.shape)404 -
-
-        #             sess.run(train_step, feed_dict={X: val_batch.reshape([batchsize, 32, 57, 125, 2]),
-        #                                             y_: label_batch.reshape([batchsize])})
-        #             print('%d step done' % i)
-        #
-        #             # if i!=0 and i%3 == 0 :
-        #             #    test_val,test_label = sess.run([test_seqs,test_label])
-        #             #    test_label = np.array([test_label],dtype=np.int64)
-        #             #    print(sess.run(accuracy,feed_dict={X:test_val.reshape([1,32,57,125,2]),y_:test_label.reshape([1])}))
-        #
-        # except tf.errors.OutOfRangeError:
-        #     print('Done training -- epoch limit reached')
-        # finally:
-        #     # When done, ask the threads to stop.
-        #     coord.request_stop()
-        #
-        # # Wait for threads to finish.
-    summary_writer.flush()
-    summary_writer.close()
-=======
         saver = tf.train.Saver()
         try:
             while not coord.should_stop():
@@ -160,10 +134,13 @@ if __name__ == '__main__':
                         print("train accuracy")
                         print(sess.run(accuracy,feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
                                                     y_: train_label.reshape([batchsize])}))
+                    if i%100=0 and i!=0:
+                        summary_str = sess.run(merged_summary_op)
+                        summary_writer.add_summary(summary_str,i)
+
                     if i%1000==0 and i!=0:
                         saver.save(sess=sess,save_path='./train_model/model',global_step=i)
                     print('%d step done' % i)
-
 
                     #if i!=0 and i%20 == 0 :
                        #test_seqs,test_label = sess.run([seqs_batch2,label_batch2])
@@ -176,10 +153,7 @@ if __name__ == '__main__':
             coord.request_stop()
             coord.join(threads)
         # Wait for threads to finish.
-
         summary_writer.flush()
         summary_writer.close()
->>>>>>> e231898844b8ed6e34a9c24f53f10a75ea8128eb
-    #coord.join(threads=threads)
 
 

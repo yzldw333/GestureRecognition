@@ -101,7 +101,7 @@ def GetVideoSeq(name,color,style,height=100,width=100):
                 frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
             if style == 'normal':
                 frame = cv2.resize(frame,(width,height),interpolation=cv2.INTER_AREA)
-                frame = frame.transpose([2,0,1])
+                #frame = frame.transpose([2,0,1])
                 seqs.extend(list(frame.ravel()))
             elif style == 'gradient image':
                 frame = cv2.resize(frame,(width,height),interpolation=cv2.INTER_AREA)
@@ -130,6 +130,10 @@ def GetVideoSeq(name,color,style,height=100,width=100):
             seqs = seqs.reshape([length,1,seqShape[0],seqShape[1]])
         else:
             seqs = seqs.reshape([length,2,seqShape[0],seqShape[1]])
+
+    if len(seqs.shape)==4:
+        seqs = seqs.transpose([0,2,3,1])
+
     return seqs
 
 
@@ -140,11 +144,11 @@ if __name__ == '__main__':
     # print(newSeqs.shape)
 
     #test GetVideoSeq
-    seqs = GetVideoSeq('/users/biglandsister/Downloads/LISA_HG_Data/dynamic_gestures/data/01_01_01.avi',style='gradient image',height=57,width=125)
+    seqs = GetVideoSeq('./data/01_01_01.avi',style='gradient image',color="gray",height=57,width=125)
 
     seqs = Drop_Repeat_Frames(seqs,32)
     print(seqs.shape)
     for e in seqs:
-        plt.imshow(e[0,:].reshape([57,125]),cmap=plt.cm.gray)
+        plt.imshow(e[:,:,0].reshape([57,125]),cmap=plt.cm.gray)
         plt.show()
     print(seqs.shape)

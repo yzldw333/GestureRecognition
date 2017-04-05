@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from preprocess import *
 from Get_VIVA_HandGesture_Database import *
 
+batchsize = 20
+
 def weight_variable(shape):
     initial = tf.truncated_normal(shape,stddev=0.01,name='weights')
     return tf.Variable(initial)
@@ -71,7 +73,7 @@ if __name__ == '__main__':
         with tf.name_scope('FC3') as scope:
             W_fc3 = weight_variable([256,19])
             b_fc3 = bias_variable([19])
-        batchsize = 2
+
         with tf.name_scope('Inputs') as scope:
             X = tf.placeholder('float',shape=[batchsize,32,57,125,2])
             y_ = tf.placeholder('int64',shape=[batchsize])
@@ -104,13 +106,17 @@ if __name__ == '__main__':
             accuracy = tf.reduce_mean(tf.cast(correct_prediction,'float'))
 
     with tf.Session(graph=graph) as sess:
-        seqs,label = Read_TFRecord('train.tfrecords')
-        test_seqs,test_label = Read_TFRecord('test.tfrecords')
+
+        seqs1,label1 = Read_TFRecord('train.tfrecords',None)
+        #seqs2,label2 = Read_TFRecord('test.tfrecords',None)
         coord = tf.train.Coordinator()
-        seqs, label = tf.train.shuffle_batch([seqs,label],batchsize,2000,1000,num_threads=4)
+        seqs_batch1, label_batch1 = tf.train.shuffle_batch([seqs1,label1],batchsize,1060,1000,num_threads=4)
+        #seqs_batch2,label_batch2 = tf.train.shuffle_batch([seqs2,label2],batchsize,3000,1500,num_threads=5)
+        tf.local_variables_initializer().run()
         threads = tf.train.start_queue_runners(sess=sess,coord=coord)
         summary_writer = tf.summary.FileWriter('./graph/logs', sess.graph)
         tf.global_variables_initializer().run()
+<<<<<<< HEAD
         # try:
         #     while not coord.should_stop():
         #         # Run training steps or whatever
@@ -136,6 +142,44 @@ if __name__ == '__main__':
         # # Wait for threads to finish.
     summary_writer.flush()
     summary_writer.close()
+=======
+        saver = tf.train.Saver()
+        try:
+            while not coord.should_stop():
+                # Run training steps or whatever
+                for i in range(20000):
+                    train_seqs, train_label = sess.run([seqs_batch1, label_batch1])
+
+                    sess.run(train_step, feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
+                                                    y_: train_label.reshape([batchsize])})
+
+                    if i%5==0:
+                        print("train cross_entropy:")
+                        print(sess.run(cross_entropy, feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
+                                                    y_: train_label.reshape([batchsize])}))
+                        print("train accuracy")
+                        print(sess.run(accuracy,feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
+                                                    y_: train_label.reshape([batchsize])}))
+                    if i%1000==0 and i!=0:
+                        saver.save(sess=sess,save_path='./train_model/model',global_step=i)
+                    print('%d step done' % i)
+
+
+                    #if i!=0 and i%20 == 0 :
+                       #test_seqs,test_label = sess.run([seqs_batch2,label_batch2])
+                       #print("test accuracy:")
+                       #print(sess.run(accuracy,feed_dict={X:test_val.reshape([batchsize,32,57,125,2]),y_:test_y.reshape([batchsize])}))
+        #except tf.errors.OutOfRangeError:
+         #   print('Done training -- epoch limit reached')
+        finally:
+            # When done, ask the threads to stop.
+            coord.request_stop()
+            coord.join(threads)
+        # Wait for threads to finish.
+
+        summary_writer.flush()
+        summary_writer.close()
+>>>>>>> e231898844b8ed6e34a9c24f53f10a75ea8128eb
     #coord.join(threads=threads)
 
 

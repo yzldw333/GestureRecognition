@@ -134,8 +134,8 @@ if __name__ == '__main__':
         #     coord.request_stop()
         #
         # # Wait for threads to finish.
-        summary_writer.flush()
-        summary_writer.close()
+    summary_writer.flush()
+    summary_writer.close()
     #coord.join(threads=threads)
 
 

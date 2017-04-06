@@ -7,7 +7,7 @@ def Get_VIVA_HandGesture_Database(type):
     :param type: 'train' or 'test'
     :return: data=[(path,label),...]
     '''
-    path = 'E:/tfProject/3DConvForGestureRecognition/data'
+    path = 'E:\code\GestureRecognition\data'
     choose_gestures = [1,2,3,4,6,7,8,13,14,15,16,21,23,27,28,29,30,31,32]
     out_data = []
     for parent,dirnames,filenames in os.walk(path):
@@ -47,7 +47,14 @@ def Write_TFRecord(pairList,tfRecordPath):
             print('%s opened Error'%path)
             continue
         seqs = Drop_Repeat_Frames(seqs,32) #Fixed to 32 Frames
-        seqs = np.array(seqs,dtype=np.uint8) #Reduce Space Usage
+        plt.imshow(seqs[0,:,:,0].reshape([57,125]),cmap=plt.cm.gray)
+        seqs = seqs.astype(np.int64)
+        # plt.imshow(seqs[0, :, :, 0].reshape([57, 125]), cmap=plt.cm.gray)
+        # plt.show()
+        #print(np.max(seqs),np.min(seqs))
+        #seqs = np.array(seqs,dtype=np.uint8) #Reduce Space Usage
+        # plt.imshow(seqs[0,:,:,0].reshape([57,125]))
+        # plt.show()
         raw_seqs = seqs.tobytes()
         example = tf.train.Example(features=tf.train.Features(
             feature={
@@ -67,9 +74,9 @@ def Read_TFRecord(tfRecordPath,epoch=None):
                                            'raw_seqs': tf.FixedLenFeature([], tf.string),
                                             'label':tf.FixedLenFeature([],tf.int64)
                                         })
-    seqs = tf.decode_raw(features['raw_seqs'],tf.uint8)
+    seqs = tf.decode_raw(features['raw_seqs'],tf.int64)
     seqs = tf.reshape(seqs,[32,57,125,2])
-    seqs = tf.cast(seqs,tf.float32)/255.0-0.5
+    seqs = tf.cast(seqs,tf.float32)
     label = tf.cast(features['label'],tf.int64)
     return seqs,label
 
@@ -85,12 +92,12 @@ def Test_Read_TFRecord():
     coord.request_stop()
     coord.join(threads)
 if __name__ == '__main__':
-    #pairList = Get_VIVA_HandGesture_Database('train')
-    #print(pairList)
-    #print(len(pairList))
-    #Write_TFRecord(pairList,'train.tfrecords')
+    pairList = Get_VIVA_HandGesture_Database('train')
+    print(pairList)
+    print(len(pairList))
+    Write_TFRecord(pairList,'train.tfrecords')
 
-    #print("train.tfrecords generation DONE!\n\n")
+    print("train.tfrecords generation DONE!\n\n")
     pairList = Get_VIVA_HandGesture_Database('test')
     print(pairList)
     print(len(pairList))

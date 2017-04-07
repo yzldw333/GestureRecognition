@@ -7,15 +7,15 @@ from Get_VIVA_HandGesture_Database import *
 batchsize = 1
 
 def weight_variable(shape):
-    initial = tf.truncated_normal(shape,stddev=0.01,name='weights')
+    initial = tf.truncated_normal(shape,stddev=0.01)
     return tf.Variable(initial)
 
 def weight_variable_u(shape,left,right):
-    initial = tf.random_uniform(shape,minval=left,maxval=right,name='weights')
-    return tf.Variable(initial)
+    initial = tf.random_uniform(shape,minval=left,maxval=right)
+    return tf.Variable(initial,name='weights')
 
 def bias_variable(shape):
-    initial = tf.constant(1.0,shape=shape,name='bias')
+    initial = tf.constant(1.0,shape=shape)
     return tf.Variable(initial)
 
 def conv3d_1(x,W,b):
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         W_fc2 = weight_variable([512,256])
         b_fc2 = bias_variable([256])
         W_fc3 = weight_variable([256,19])
-        b_fc3 = tf.Variable(tf.zeros([19],name='bias'))
+        b_fc3 = tf.Variable(tf.zeros([19]))
 
         with tf.name_scope('Inputs') as scope:
             X = tf.placeholder('float',shape=[batchsize,32,57,125,2])
@@ -89,12 +89,32 @@ if __name__ == '__main__':
         with tf.name_scope('Fc2') as scope:
             h_fc2 = fc(h_fc1,W_fc2,b_fc2)
 
-        y_conv = tf.nn.softmax(tf.matmul(h_fc2,W_fc3)+b_fc3)
+        y_conv = tf.matmul(h_fc2,W_fc3)+b_fc3
         cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
           labels=y_, logits=y_conv, name='xentropy'),name='xentropy_mean')
         tf.summary.scalar('cross_entropy',cross_entropy)
+        # # Create your variables
+        # weights = tf.get_variable('weights', collections=['variables'])
+        #
+        # with tf.variable_scope('weights_norm') as scope:
+        #     weights_norm = tf.reduce_sum(
+        #         input_tensor=0.005 * tf.pack(
+        #             [tf.nn.l2_loss(i) for i in tf.get_collection('weights')]
+        #         ),
+        #         name='weights_norm'
+        #     )
+        #
+        # # Add the weight decay loss to another collection called losses
+        # tf.add_to_collection('losses', weights_norm)
+        #
+        # # Add the other loss components to the collection losses
+        # tf.add_to_collection('cross_entropy',cross_entropy)
+        #
+        # # To calculate your total loss
+        # tf.add_n(tf.get_collection('losses'), name='total_loss')
+
         with tf.name_scope('train') as scope:
-            train_step = tf.train.MomentumOptimizer(learning_rate=0.01,momentum=0.9,use_nesterov=True).minimize(cross_entropy)
+            train_step = tf.train.MomentumOptimizer(learning_rate=0.0005,momentum=0.9,use_nesterov=True).minimize(cross_entropy)
         with tf.name_scope('predict') as scope:
             correct_prediction = tf.equal(tf.argmax(y_conv,1),y_)
         with tf.name_scope('accuracy') as scope:

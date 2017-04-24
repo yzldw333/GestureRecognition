@@ -7,7 +7,7 @@ def Get_VIVA_HandGesture_Database(type):
     :param type: 'train' or 'test'
     :return: data=[(path,label),...]
     '''
-    path = 'E:\code\GestureRecognition\data'
+    path = 'E:\code\GestureRecognition\gray'
     choose_gestures = [1,2,3,4,6,7,8,13,14,15,16,21,23,27,28,29,30,31,32]
     out_data = []
     for parent,dirnames,filenames in os.walk(path):

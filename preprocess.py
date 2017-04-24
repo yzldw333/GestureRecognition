@@ -11,69 +11,29 @@ def Drop_Repeat_Frames(seqs, frameNum):
     :return: new video sequences
                 numpy array
     '''
-    newSeqs = None
     length = np.size(seqs,0)
     shape = seqs.shape
-    counts = 1
     if len(shape) == 4 :
         seqs = seqs.reshape([length,shape[-3],shape[-2],shape[-1]])
         counts = shape[-3]*shape[-2]*shape[-1]
     elif len(shape) == 3:
-        seqs = seqs.reshape([length,1,shape[-2],shape[-1]])
+        seqs = seqs.reshape([length,shape[-2],shape[-1],1])
         counts = shape[-2]*shape[-1]
     else:
         print("Shape ERROR!")
         return
 
     shape = seqs.shape
-    if length > frameNum:
-        # need cut frames
-        cutNum = length - frameNum
-        while cutNum != 0:
-            per = length//cutNum
-            if per==1:
-                per = 2
-                cutNum = length//per
-            for i in range(cutNum):
-                if i == 0:
-                    newSeqs = []
-                    newSeqs.extend(list(seqs[:per-1].ravel()))
-                else:
-                    newSeqs.extend(list(seqs[per*i:per*i+per-1].ravel()))
-            newSeqs.extend(list(seqs[per*cutNum:].ravel()))
-            newSeqs = np.array(newSeqs,dtype=np.float32).ravel()
-            length = len(newSeqs)//counts
-            if len(shape) == 4:
-                seqs = newSeqs.reshape([length,shape[-3],shape[-2],shape[-1]])
-            elif len(shape) == 3:
-                seqs = newSeqs.reshape([length,shape[-2],shape[-1]])
-            cutNum = length-frameNum
-
-    elif length<frameNum:
-        # need repeat frames
-        addNum = frameNum - length
-        while addNum != 0:
-            per = length//addNum
-            for i in range(addNum):
-                if i == 0:
-                    newSeqs = []
-                    newSeqs.extend(list(seqs[:per].ravel()))
-                    if per-1<length:
-                        newSeqs.extend(list(seqs[per-1].ravel()))
-                else:
-                    newSeqs.extend(list(seqs[per*i:per*i+per].ravel()))
-                    if per*i+per<length:
-                        newSeqs.extend(list(seqs[per*i+per].ravel()))
-            newSeqs.extend(list(seqs[per*addNum:].ravel()))
-            newSeqs = np.array(newSeqs,dtype=np.float32).ravel()
-            length = len(newSeqs)//counts
-            if len(shape) == 4:
-                seqs = newSeqs.reshape([length,shape[-3],shape[-2],shape[-1]])
-            elif len(shape) == 3:
-                seqs = newSeqs.reshape([length,shape[-2],shape[-1]])
-            addNum = frameNum - length
-
-
+    newSeqs = []
+    for i in range(frameNum):
+        idx = (int)(i*1.0/frameNum*length+0.5)
+        if idx>=length:
+            idx=length-1
+        newSeqs.extend(list(seqs[idx].ravel()))
+    newSeqs = np.array(newSeqs,dtype=np.float32).ravel()
+    length = len(newSeqs)//counts
+    if len(shape) == 4:
+        seqs = newSeqs.reshape([length,shape[-3],shape[-2],shape[-1]])
     return seqs
 
 def GetVideoSeq(name,color,style,height=100,width=100):
@@ -144,7 +104,7 @@ if __name__ == '__main__':
     # print(newSeqs.shape)
 
     #test GetVideoSeq
-    seqs = GetVideoSeq('./data/01_01_01.avi',style='gradient image',color="gray",height=57,width=125)
+    seqs = GetVideoSeq('./gray/01_01_01.avi',style='gradient image',color="gray",height=57,width=125)
 
     seqs = Drop_Repeat_Frames(seqs,32)
     print(seqs.shape)

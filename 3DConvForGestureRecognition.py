@@ -5,6 +5,7 @@ from preprocess import *
 from Get_VIVA_HandGesture_Database import *
 
 batchsize = 1
+model_path = './train_model/'
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape,stddev=0.01)
@@ -46,6 +47,8 @@ def fc(x,W,b):
     return tf.nn.relu(tf.matmul(x,W)+b)
 
 if __name__ == '__main__':
+    if os.path.exists(model_path)==False:
+        os.mkdir(model_path)
     graph = tf.Graph()
     with graph.as_default():
         wb=np.sqrt(6/(2*57*125*32+28*51*119*4))
@@ -66,11 +69,13 @@ if __name__ == '__main__':
         b_fc2 = bias_variable([256])
         W_fc3 = weight_variable([256,19])
         b_fc3 = tf.Variable(tf.zeros([19]))
-
+        tf.summary.histogram('W_conv3d_1',W_conv3d_1)
+        tf.summary.histogram('W_fc_1', W_fc1)
+        tf.summary.histogram('W_fc_2', W_fc2)
         with tf.name_scope('Inputs') as scope:
             X = tf.placeholder('float',shape=[batchsize,32,57,125,2])
             y_ = tf.placeholder('int64',shape=[batchsize])
-            #tf.summary.image('input',X[:,0,:,:,0])
+            tf.summary.histogram('input',X)
         with tf.name_scope('Conv1') as scope:
             h_conv1 = conv3d_1(X,W_conv3d_1,b_conv3d_1)
             h_pool1 = max_pool_3d_1(h_conv1)
@@ -90,6 +95,8 @@ if __name__ == '__main__':
             h_fc2 = fc(h_fc1,W_fc2,b_fc2)
 
         y_conv = tf.matmul(h_fc2,W_fc3)+b_fc3
+        tf.summary.histogram('softmax_prob',tf.nn.softmax(y_conv))
+
         cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
           labels=y_, logits=y_conv, name='xentropy'),name='xentropy_mean')
         tf.summary.scalar('cross_entropy',cross_entropy)
@@ -156,7 +163,7 @@ if __name__ == '__main__':
                     summary_writer.add_summary(summary_str,i)
 
                     if i%1000==0 and i!=0:
-                        saver.save(sess=sess,save_path='./train_model/model',global_step=i)
+                        saver.save(sess=sess,save_path=model_path,global_step=i)
                     print('%d step done' % i)
 
                     #if i!=0 and i%20 == 0 :

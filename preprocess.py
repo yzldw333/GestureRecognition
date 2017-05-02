@@ -1,6 +1,11 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+
+GRAD=1
+NORMAL=2
+GRAD_NORMAL=3
+
 def Drop_Repeat_Frames(seqs, frameNum):
     '''
     Drop and Repeat Frames to make each video has same frame num.
@@ -59,11 +64,12 @@ def GetVideoSeq(name,color,style,height=100,width=100):
         if res:
             if color=='gray':
                 frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-            if style == 'normal':
+            if style & NORMAL==NORMAL:
                 frame = cv2.resize(frame,(width,height),interpolation=cv2.INTER_AREA)
-                #frame = frame.transpose([2,0,1])
+                if len(frame.shape) == 3:
+                    frame = frame.transpose([2,0,1])
                 seqs.extend(list(frame.ravel()))
-            elif style == 'gradient image':
+            if style & GRAD == GRAD:
                 frame = cv2.resize(frame,(width,height),interpolation=cv2.INTER_AREA)
                 grad1 = cv2.Sobel(frame,cv2.CV_64F,1,0)
                 if len(grad1.shape)==3:
@@ -75,21 +81,20 @@ def GetVideoSeq(name,color,style,height=100,width=100):
                 seqs.extend(list(grad.ravel()))
                 if len(frame.shape)==3:
                     frame = frame.transpose([2,0,1])
+
             seqShape = frame.shape
             length += 1
         else:
             break
     seqs = np.array(seqs,dtype = np.float32)
-    if len(seqShape) == 3:
-        if style=='normal':
-            seqs = seqs.reshape([length,seqShape[0],seqShape[1],seqShape[2]])
-        else:
-            seqs = seqs.reshape([length,seqShape[0]*2,seqShape[1],seqShape[2]])
-    elif len(seqShape) == 2:
-        if style=='normal':
-            seqs = seqs.reshape([length,1,seqShape[0],seqShape[1]])
-        else:
+    #only gray image
+    if len(seqShape) == 2:
+        if style&GRAD_NORMAL==GRAD_NORMAL:
+            seqs = seqs.reshape([length,3,seqShape[0],seqShape[1]])
+        elif style&GRAD==GRAD:
             seqs = seqs.reshape([length,2,seqShape[0],seqShape[1]])
+        elif style&NORMAL==NORMAL:
+            seqs = seqs.reshape([length, 1, seqShape[0], seqShape[1]])
 
     if len(seqs.shape)==4:
         seqs = seqs.transpose([0,2,3,1])
@@ -104,7 +109,7 @@ if __name__ == '__main__':
     # print(newSeqs.shape)
 
     #test GetVideoSeq
-    seqs = GetVideoSeq('./gray/01_01_01.avi',style='gradient image',color="gray",height=57,width=125)
+    seqs = GetVideoSeq('./gray/01_01_01.avi',style=GRAD_NORMAL,color="gray",height=57,width=125)
 
     seqs = Drop_Repeat_Frames(seqs,32)
     print(seqs.shape)

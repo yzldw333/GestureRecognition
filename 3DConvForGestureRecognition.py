@@ -13,7 +13,7 @@ def weight_variable(shape):
 
 def weight_variable_u(shape,left,right):
     initial = tf.random_uniform(shape,minval=left,maxval=right)
-    return tf.Variable(initial,name='weights')
+    return tf.Variable(initial)
 
 def bias_variable(shape):
     initial = tf.constant(1.0,shape=shape)
@@ -51,8 +51,8 @@ if __name__ == '__main__':
         os.mkdir(model_path)
     graph = tf.Graph()
     with graph.as_default():
-        wb=np.sqrt(6/(2*57*125*32+28*51*119*4))
-        W_conv3d_1 = weight_variable_u([5,7,7,2,4],-wb,wb)
+        wb=np.sqrt(6/(3*57*125*32+28*51*119*4))
+        W_conv3d_1 = weight_variable_u([5,7,7,3,4],-wb,wb)
         b_conv3d_1 = bias_variable([1,28,51,119,4])
         wb=np.sqrt(6/(4*25*59*14+12*21*55*8))
         W_conv3d_2 = weight_variable_u([3,5,5,4,8],-wb,wb)
@@ -73,7 +73,7 @@ if __name__ == '__main__':
         tf.summary.histogram('W_fc_1', W_fc1)
         tf.summary.histogram('W_fc_2', W_fc2)
         with tf.name_scope('Inputs') as scope:
-            X = tf.placeholder('float',shape=[batchsize,32,57,125,2])
+            X = tf.placeholder('float',shape=[batchsize,32,57,125,3])
             y_ = tf.placeholder('int64',shape=[batchsize])
             tf.summary.histogram('input',X)
         with tf.name_scope('Conv1') as scope:
@@ -121,7 +121,7 @@ if __name__ == '__main__':
         # tf.add_n(tf.get_collection('losses'), name='total_loss')
 
         with tf.name_scope('train') as scope:
-            train_step = tf.train.MomentumOptimizer(learning_rate=0.0005,momentum=0.9,use_nesterov=True).minimize(cross_entropy)
+            train_step = tf.train.MomentumOptimizer(learning_rate=0.01,momentum=0.9,use_nesterov=True).minimize(cross_entropy)
         with tf.name_scope('predict') as scope:
             correct_prediction = tf.equal(tf.argmax(y_conv,1),y_)
         with tf.name_scope('accuracy') as scope:
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         coord = tf.train.Coordinator()
         seqs_batch, label_batch1 = tf.train.shuffle_batch([seqs1,label1],batchsize,1060,1000,num_threads=4)
         mean, variance = tf.nn.moments(seqs_batch, [0,1,2,3])
-        seqs_batch1 = (seqs_batch-tf.reshape(mean,[1,1,1,1,2]))/tf.sqrt(tf.reshape(variance,[1,1,1,1,2]))
+        seqs_batch1 = (seqs_batch-tf.reshape(mean,[1,1,1,1,3]))/tf.sqrt(tf.reshape(variance,[1,1,1,1,3]))
         #seqs_batch2,label_batch2 = tf.train.shuffle_batch([seqs2,label2],batchsize,3000,1500,num_threads=5)
         merged_summary_op = tf.summary.merge_all()
         tf.local_variables_initializer().run()
@@ -148,13 +148,9 @@ if __name__ == '__main__':
                 # Run training steps or whatever
                 for i in range(20000):
                     train_seqs, train_label= sess.run([seqs_batch1, label_batch1])
-                    summary_str,_=sess.run((merged_summary_op,train_step), feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
+                    summary_str,_,_cross_entropy=sess.run((merged_summary_op,train_step,cross_entropy), feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 3]),
                                                     y_: train_label.reshape([batchsize])})
-
-                    # if i%1==0:
-                    #     print("train cross_entropy:")
-                    #     print(sess.run(cross_entropy, feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
-                    #                                 y_: train_label.reshape([batchsize])}))
+                    print(_cross_entropy)
                         # print("train accuracy")
                         # print(sess.run(accuracy,feed_dict={X: train_seqs.reshape([batchsize, 32, 57, 125, 2]),
                         #                             y_: train_label.reshape([batchsize])}))
